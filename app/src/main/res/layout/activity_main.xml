@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Barre de recherche -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp">
+
+        <EditText
+            android:id="@+id/searchEditText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Rechercher"
+            android:inputType="text" />
+
+        <Button
+            android:id="@+id/searchButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Rechercher" />
+
+    </LinearLayout>
+
+    <!-- Galerie de dessins -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/drawingRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="16dp" />
+
+    <!-- Boutons de filtre -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/filterButton1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Filtre 1" />
+
+        <Button
+            android:id="@+id/filterButton2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Filtre 2" />
+
+        <!-- Ajoutez d'autres boutons de filtre selon vos besoins -->
+
+    </LinearLayout>
+
+</LinearLayout>
