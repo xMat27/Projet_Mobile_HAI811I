@@ -2,35 +2,53 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <ImageView
+        android:id="@+id/thumbnailImageView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:src="@drawable/denji" />
 
     <TextView
         android:id="@+id/titleTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Title" />
+        android:text="Title"
+        android:textStyle="bold"
+        android:paddingTop="8dp" />
 
     <TextView
         android:id="@+id/authorTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Author" />
+        android:text="Author"
+        android:paddingTop="4dp" />
 
     <TextView
         android:id="@+id/dateTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Date" />
+        android:text="Date"
+        android:paddingTop="4dp" />
 
-    <ImageView
-        android:id="@+id/drawingImageView"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:src="@drawable/denji" /> <!-- Image par défaut -->
-
+        android:orientation="horizontal">
     <Button
         android:id="@+id/drawButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Draw" />
+
+    <Button
+        android:id="@+id/deleteButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Delete" />
+
+    </LinearLayout>
 </LinearLayout>

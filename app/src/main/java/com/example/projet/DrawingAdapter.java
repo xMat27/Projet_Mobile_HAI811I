@@ -1,8 +1,9 @@
 package com.example.projet;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
+import android.os.Environment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,14 +13,14 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.projet.Drawing;
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
 import java.util.List;
 
 public class DrawingAdapter extends RecyclerView.Adapter<DrawingAdapter.DrawingViewHolder> {
+
     private List<Drawing> drawingList;
-    private Context context;
 
     public DrawingAdapter(List<Drawing> drawingList) {
         this.drawingList = drawingList;
@@ -28,26 +29,24 @@ public class DrawingAdapter extends RecyclerView.Adapter<DrawingAdapter.DrawingV
     @NonNull
     @Override
     public DrawingViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_drawing, parent, false);
-        return new DrawingViewHolder(view);
+        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_drawing, parent, false);
+        return new DrawingViewHolder(itemView);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull DrawingViewHolder holder, int position) {
-        // Récupérer le dessin à cette position
+    public void onBindViewHolder(@NonNull DrawingViewHolder holder, @SuppressLint("RecyclerView") int position) {
         Drawing drawing = drawingList.get(position);
-
-        // Attribuer les données du dessin à la vue
         holder.titleTextView.setText(drawing.getTitle());
         holder.authorTextView.setText(drawing.getAuthor());
         holder.dateTextView.setText(drawing.getDate());
 
-        // Charger l'image à partir de la ressource
-        //holder.imageView.setImageResource(drawing.getImageResourceId());
-        // Charger l'image à partir de la ressource drawable avec Picasso
-        Picasso.get().load(drawing.getImageResourceId()).into(holder.imageView);
+        // Utiliser Picasso pour charger l'image
+        File storageDir = holder.itemView.getContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File imageFile = new File(storageDir, "Drawing_" + drawing.getImageResourceId() + ".png");
 
-        // Ajouter un gestionnaire d'événements pour l'élément de dessin
+        if (imageFile.exists()) {
+            Picasso.get().load(imageFile).into(holder.thumbnailImageView);
+        }
         holder.drawButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -58,30 +57,45 @@ public class DrawingAdapter extends RecyclerView.Adapter<DrawingAdapter.DrawingV
                 context.startActivity(intent);
             }
         });
+        holder.deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Supprimer le dessin de la base de données et mettre à jour l'adaptateur
+                DrawingDatabaseHelper dbHelper = new DrawingDatabaseHelper(holder.itemView.getContext());
+                dbHelper.deleteDrawing(drawing.getDate());
+                drawingList.remove(position);
+                notifyItemRemoved(position);
+                notifyItemRangeChanged(position, drawingList.size());
+            }
+        });
     }
-
-
 
     @Override
     public int getItemCount() {
         return drawingList.size();
     }
 
+    public void setDrawingList(List<Drawing> drawingList) {
+        this.drawingList = drawingList;
+        notifyDataSetChanged();
+    }
 
     static class DrawingViewHolder extends RecyclerView.ViewHolder {
-        ImageView imageView;
+        public Button drawButton;
+        public Button deleteButton;
         TextView titleTextView;
         TextView authorTextView;
         TextView dateTextView;
-        public Button drawButton;
+        ImageView thumbnailImageView;
 
         public DrawingViewHolder(@NonNull View itemView) {
             super(itemView);
-            imageView = itemView.findViewById(R.id.drawingImageView);
             titleTextView = itemView.findViewById(R.id.titleTextView);
             authorTextView = itemView.findViewById(R.id.authorTextView);
             dateTextView = itemView.findViewById(R.id.dateTextView);
+            thumbnailImageView = itemView.findViewById(R.id.thumbnailImageView);
             drawButton = itemView.findViewById(R.id.drawButton);
+            deleteButton = itemView.findViewById(R.id.deleteButton);
         }
     }
 }

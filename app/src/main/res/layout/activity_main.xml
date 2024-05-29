@@ -35,6 +35,21 @@
         android:layout_weight="1"
         android:padding="16dp" />
 
+    <Button
+        android:id="@+id/btnCreate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Créer" />
+
+    <Button
+        android:id="@+id/deleteAllButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Supprimer tous les dessins"
+        android:layout_margin="16dp"
+        android:layout_gravity="center_horizontal"/>
+
+
     <!-- Boutons de filtre -->
     <LinearLayout
         android:layout_width="match_parent"

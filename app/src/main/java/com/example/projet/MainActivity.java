@@ -22,9 +22,11 @@ public class MainActivity extends AppCompatActivity {
 
     private EditText searchEditText;
     private Button searchButton;
+    private Button deleteAllButton; // Ajoutez ce bouton
     private RecyclerView drawingRecyclerView;
     private DrawingAdapter drawingAdapter;
     private List<Drawing> drawingList;
+    private DrawingDatabaseHelper dbHelper;
 
 
     @Override
@@ -37,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
         String description = getIntent().getStringExtra("description");
         boolean isPremium = getIntent().getBooleanExtra("isPremium", false);
         boolean isConnect = getIntent().getBooleanExtra("connected", false);
+        String drawingTitle = getIntent().getStringExtra("drawingTitle");
         User user = new User(username, email, city, description, isPremium, isConnect);
 
         // Vérifiez si l'utilisateur est connecté ou non
@@ -53,14 +56,14 @@ public class MainActivity extends AppCompatActivity {
         // Initialisation des vues
         searchEditText = findViewById(R.id.searchEditText);
         searchButton = findViewById(R.id.searchButton);
+        deleteAllButton = findViewById(R.id.deleteAllButton); // Initialisation du bouton
         drawingRecyclerView = findViewById(R.id.drawingRecyclerView);
 
-        // Initialisation de la liste de dessins (exemple)
-        drawingList = new ArrayList<>();
-        drawingList.add(new Drawing("Dessin 1", "Auteur 1", "2024-04-27", R.drawable.denji));
-        drawingList.add(new Drawing("Dessin 2", "Auteur 2", "2024-04-26", R.drawable.object_near));
-        // Ajoutez d'autres dessins à la liste selon vos besoins
+        // Initialisation de la base de données
+        dbHelper = new DrawingDatabaseHelper(this);
 
+        // Chargement des dessins depuis la base de données
+        drawingList = dbHelper.getAllDrawings();
 
         // Initialisation de l'adaptateur RecyclerView
         drawingAdapter = new DrawingAdapter(drawingList);
@@ -78,16 +81,45 @@ public class MainActivity extends AppCompatActivity {
                 filterDrawings(searchText);
             }
         });
+
+        // Gestionnaire d'événements pour le bouton de suppression de tous les dessins
+        deleteAllButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                dbHelper.deleteAllDrawings();
+                drawingList.clear();
+                drawingAdapter.notifyDataSetChanged();
+                Toast.makeText(MainActivity.this, "Tous les dessins ont été supprimés", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        Button btnCreate = findViewById(R.id.btnCreate);
+        btnCreate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, DrawingActivity.class);
+                intent.putExtra("isNewDrawing", true); // Indicate it's a new drawing
+                startActivity(intent);
+            }
+        });
     }
 
     // Méthode pour filtrer les dessins en fonction du texte de recherche
     private void filterDrawings(String searchText) {
-        // Implémentez la logique de filtrage ici
-        // Vous pouvez filtrer les dessins en fonction du titre, de l'auteur, de la date, etc.
-        // Mettez à jour la liste des dessins affichés dans l'adaptateur RecyclerView
-        //drawingAdapter.setDrawingList(filteredDrawingList);
-        // drawingAdapter.notifyDataSetChanged();
+        // Liste temporaire pour stocker les dessins filtrés
+        List<Drawing> filteredDrawingList = new ArrayList<>();
+
+        // Parcourir la liste des dessins
+        for (Drawing drawing : drawingList) {
+            // Vérifier si le titre ou l'auteur contient le texte de recherche
+            if (drawing.getTitle().toLowerCase().contains(searchText.toLowerCase()) ||
+                    drawing.getAuthor().toLowerCase().contains(searchText.toLowerCase())) {
+                // Ajouter le dessin à la liste filtrée
+                filteredDrawingList.add(drawing);
+            }
+        }
+
+        // Mettre à jour l'adaptateur avec la liste filtrée
+        drawingAdapter.setDrawingList(filteredDrawingList);
     }
 }
-
-

@@ -1,32 +1,36 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".DrawingActivity">
 
-    <!-- Zone pour dessiner -->
-    <FrameLayout
-        android:id="@+id/drawingFrameLayout"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_above="@id/btnSave"
-        android:background="@android:color/white">
-
-        <!-- Vue de dessin -->
-        <com.example.projet.CanvasView
-            android:id="@+id/canvasView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-
-    </FrameLayout>
-
-    <!-- Bouton de sauvegarde -->
-    <Button
-        android:id="@+id/btnSave"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Sauvegarder"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginBottom="16dp" />
+        android:orientation="horizontal">
 
-</RelativeLayout>
+        <Button
+            android:id="@+id/btnSave"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sauvegarder" />
+
+        <EditText
+            android:id="@+id/etDrawingName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Nom du dessin"
+            android:text="Nouveau dessin" />
+
+    </LinearLayout>
+
+    <com.example.projet.CanvasView
+        android:id="@+id/canvasView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@android:color/white" />
+
+</LinearLayout>

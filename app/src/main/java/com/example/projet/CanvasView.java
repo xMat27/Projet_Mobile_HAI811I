@@ -39,17 +39,16 @@ public class CanvasView extends View {
         CIRCLE,
         ELLIPSE,
         QUADRATIC_BEZIER,
-        QUBIC_BEZIER;
+        CUBIC_BEZIER;
     }
 
     private Context context = null;
-    private Canvas canvas   = null;
-    private Bitmap bitmap   = null;
+    private Canvas canvas = null;
+    private Bitmap bitmap = null;
 
     private Paint paint;
 
-
-    private List<Path> pathLists  = new ArrayList<Path>();
+    private List<Path> pathLists = new ArrayList<Path>();
     private List<Paint> paintLists = new ArrayList<Paint>();
 
     // for Eraser
@@ -59,31 +58,31 @@ public class CanvasView extends View {
     private int historyPointer = 0;
 
     // Flags
-    private Mode mode      = Mode.DRAW;
-    private Drawer drawer  = Drawer.PEN;
+    private Mode mode = Mode.DRAW;
+    private Drawer drawer = Drawer.PEN;
     private boolean isDown = false;
 
     // for Paint
     private Paint.Style paintStyle = Paint.Style.STROKE;
-    private int paintStrokeColor   = Color.BLACK;
-    private int paintFillColor     = Color.BLACK;
+    private int paintStrokeColor = Color.BLACK;
+    private int paintFillColor = Color.BLACK;
     private float paintStrokeWidth = 3F;
-    private int opacity            = 255;
-    private float blur             = 0F;
-    private Paint.Cap lineCap      = Paint.Cap.ROUND;
+    private int opacity = 255;
+    private float blur = 0F;
+    private Paint.Cap lineCap = Paint.Cap.ROUND;
 
     // for Text
-    private String text           = "";
-    private Typeface fontFamily   = Typeface.DEFAULT;
-    private float fontSize        = 32F;
+    private String text = "";
+    private Typeface fontFamily = Typeface.DEFAULT;
+    private float fontSize = 32F;
     private Paint.Align textAlign = Paint.Align.RIGHT;  // fixed
-    private Paint textPaint       = new Paint();
-    private float textX           = 0F;
-    private float textY           = 0F;
+    private Paint textPaint = new Paint();
+    private float textX = 0F;
+    private float textY = 0F;
 
     // for Drawer
-    private float startX   = 0F;
-    private float startY   = 0F;
+    private float startX = 0F;
+    private float startY = 0F;
     private float controlX = 0F;
     private float controlY = 0F;
 
@@ -180,9 +179,6 @@ public class CanvasView extends View {
             // Eraser
             paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
             paint.setARGB(0, 0, 0, 0);
-
-            // paint.setColor(this.baseColor);
-            // paint.setShadowLayer(this.blur, 0F, 0F, this.baseColor);
         } else {
             // Otherwise
             paint.setColor(this.paintStrokeColor);
@@ -269,12 +265,12 @@ public class CanvasView extends View {
         Paint paintForMeasureText = new Paint();
 
         // Line break automatically
-        float textLength   = paintForMeasureText.measureText(this.text);
-        float lengthOfChar = textLength / (float)this.text.length();
-        float restWidth    = this.canvas.getWidth() - textX;  // text-align : right
-        int numChars       = (lengthOfChar <= 0) ? 1 : (int)Math.floor((double)(restWidth / lengthOfChar));  // The number of characters at 1 line
-        int modNumChars    = (numChars < 1) ? 1 : numChars;
-        float y            = textY;
+        float textLength = paintForMeasureText.measureText(this.text);
+        float lengthOfChar = textLength / (float) this.text.length();
+        float restWidth = this.canvas.getWidth() - textX;  // text-align : right
+        int numChars = (lengthOfChar <= 0) ? 1 : (int) Math.floor((double) (restWidth / lengthOfChar));  // The number of characters at 1 line
+        int modNumChars = (numChars < 1) ? 1 : numChars;
+        float y = textY;
 
         for (int i = 0, len = this.text.length(); i < len; i += modNumChars) {
             String substring = "";
@@ -298,10 +294,10 @@ public class CanvasView extends View {
      */
     private void onActionDown(MotionEvent event) {
         switch (this.mode) {
-            case DRAW   :
-            case ERASER :
-                if ((this.drawer != Drawer.QUADRATIC_BEZIER) && (this.drawer != Drawer.QUBIC_BEZIER)) {
-                    // Oherwise
+            case DRAW:
+            case ERASER:
+                if ((this.drawer != Drawer.QUADRATIC_BEZIER) && (this.drawer != Drawer.CUBIC_BEZIER)) {
+                    // Otherwise
                     this.updateHistory(this.createPath(event));
                     this.isDown = true;
                 } else {
@@ -309,572 +305,248 @@ public class CanvasView extends View {
                     if ((this.startX == 0F) && (this.startY == 0F)) {
                         // The 1st tap
                         this.updateHistory(this.createPath(event));
-                    } else {
+                    } else if ((this.controlX == 0F) && (this.controlY == 0F)) {
                         // The 2nd tap
                         this.controlX = event.getX();
                         this.controlY = event.getY();
-
-                        this.isDown = true;
                     }
+
+                    this.isDown = true;
                 }
 
                 break;
-            case TEXT   :
+            case TEXT:
+                this.startX = event.getX();
+                this.startY = event.getY();
+
+                this.drawText(this.canvas);
+                break;
+        }
+
+        invalidate(); // Ajouter cet appel à invalidate() ici
+    }
+
+    private void onActionMove(MotionEvent event) {
+        switch (this.mode) {
+            case DRAW:
+            case ERASER:
+                if (this.isDown) {
+                    Path path = this.getCurrentPath();
+
+                    switch (this.drawer) {
+                        case PEN:
+                            path.lineTo(event.getX(), event.getY());
+                            break;
+                        case LINE:
+                            path.reset();
+                            path.moveTo(this.startX, this.startY);
+                            path.lineTo(event.getX(), event.getY());
+                            break;
+                        case RECTANGLE:
+                            path.reset();
+                            path.addRect(this.startX, this.startY, event.getX(), event.getY(), Path.Direction.CCW);
+                            break;
+                        case CIRCLE:
+                            float radius = (float) Math.hypot((event.getX() - this.startX), (event.getY() - this.startY));
+                            path.reset();
+                            path.addCircle(this.startX, this.startY, radius, Path.Direction.CCW);
+                            break;
+                        case ELLIPSE:
+                            RectF rect = new RectF(this.startX, this.startY, event.getX(), event.getY());
+                            path.reset();
+                            path.addOval(rect, Path.Direction.CCW);
+                            break;
+                        case QUADRATIC_BEZIER:
+                            if (this.controlX > 0F) {
+                                path.reset();
+                                path.moveTo(this.startX, this.startY);
+                                path.quadTo(this.controlX, this.controlY, event.getX(), event.getY());
+                            }
+                            break;
+                        case CUBIC_BEZIER:
+                            if (this.controlX > 0F) {
+                                path.reset();
+                                path.moveTo(this.startX, this.startY);
+                                path.cubicTo(this.startX, this.startY, this.controlX, this.controlY, event.getX(), event.getY());
+                            }
+                            break;
+                    }
+
+                    invalidate(); // Ajouter cet appel à invalidate() ici
+                }
+
+                break;
+            case TEXT:
                 this.startX = event.getX();
                 this.startY = event.getY();
 
                 break;
-            default :
-                break;
         }
     }
 
-    /**
-     * This method defines processes on MotionEvent.ACTION_MOVE
-     *
-     * @param event This is argument of onTouchEvent method
-     */
-    private void onActionMove(MotionEvent event) {
-        float x = event.getX();
-        float y = event.getY();
-
+    private void onActionUp(MotionEvent event) {
         switch (this.mode) {
-            case DRAW   :
-            case ERASER :
-
-                if ((this.drawer != Drawer.QUADRATIC_BEZIER) && (this.drawer != Drawer.QUBIC_BEZIER)) {
-                    if (!isDown) {
-                        return;
-                    }
-
+            case DRAW:
+            case ERASER:
+                if (this.isDown) {
                     Path path = this.getCurrentPath();
 
                     switch (this.drawer) {
-                        case PEN :
-                            path.lineTo(x, y);
+                        case PEN:
+                            path.lineTo(event.getX(), event.getY());
                             break;
-                        case LINE :
+                        case LINE:
                             path.reset();
                             path.moveTo(this.startX, this.startY);
-                            path.lineTo(x, y);
+                            path.lineTo(event.getX(), event.getY());
                             break;
-                        case RECTANGLE :
+                        case RECTANGLE:
                             path.reset();
-                            path.addRect(this.startX, this.startY, x, y, Path.Direction.CCW);
+                            path.addRect(this.startX, this.startY, event.getX(), event.getY(), Path.Direction.CCW);
                             break;
-                        case CIRCLE :
-                            double distanceX = Math.abs((double)(this.startX - x));
-                            double distanceY = Math.abs((double)(this.startX - y));
-                            double radius    = Math.sqrt(Math.pow(distanceX, 2.0) + Math.pow(distanceY, 2.0));
-
+                        case CIRCLE:
+                            float radius = (float) Math.hypot((event.getX() - this.startX), (event.getY() - this.startY));
                             path.reset();
-                            path.addCircle(this.startX, this.startY, (float)radius, Path.Direction.CCW);
+                            path.addCircle(this.startX, this.startY, radius, Path.Direction.CCW);
                             break;
-                        case ELLIPSE :
-                            RectF rect = new RectF(this.startX, this.startY, x, y);
-
+                        case ELLIPSE:
+                            RectF rect = new RectF(this.startX, this.startY, event.getX(), event.getY());
                             path.reset();
                             path.addOval(rect, Path.Direction.CCW);
                             break;
-                        default :
+                        case QUADRATIC_BEZIER:
+                            if (this.controlX > 0F) {
+                                path.reset();
+                                path.moveTo(this.startX, this.startY);
+                                path.quadTo(this.controlX, this.controlY, event.getX(), event.getY());
+                            }
+                            break;
+                        case CUBIC_BEZIER:
+                            if (this.controlX > 0F) {
+                                path.reset();
+                                path.moveTo(this.startX, this.startY);
+                                path.cubicTo(this.startX, this.startY, this.controlX, this.controlY, event.getX(), event.getY());
+                            }
                             break;
                     }
-                } else {
-                    if (!isDown) {
-                        return;
-                    }
 
-                    Path path = this.getCurrentPath();
-
-                    path.reset();
-                    path.moveTo(this.startX, this.startY);
-                    path.quadTo(this.controlX, this.controlY, x, y);
+                    this.isDown = false;
+                    invalidate(); // Ajouter cet appel à invalidate() ici
                 }
 
                 break;
-            case TEXT :
-                this.startX = x;
-                this.startY = y;
+            case TEXT:
+                this.startX = event.getX();
+                this.startY = event.getY();
 
+                this.drawText(this.canvas);
+                invalidate(); // Ajouter cet appel à invalidate() ici
                 break;
-            default :
-                break;
         }
     }
 
-    /**
-     * This method defines processes on MotionEvent.ACTION_DOWN
-     *
-     * @param event This is argument of onTouchEvent method
-     */
-    private void onActionUp(MotionEvent event) {
-        if (isDown) {
-            this.startX = 0F;
-            this.startY = 0F;
-            this.isDown = false;
-        }
-    }
 
-    /**
-     * This method updates the instance of Canvas (View)
-     *
-     * @param canvas the new instance of Canvas
-     */
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-
-        // Before "drawPath"
-        canvas.drawColor(this.baseColor);
-
-        if (this.bitmap != null) {
-            canvas.drawBitmap(this.bitmap, 0F, 0F, new Paint());
-        }
-
-        for (int i = 0; i < this.historyPointer; i++) {
-            Path path   = this.pathLists.get(i);
-            Paint paint = this.paintLists.get(i);
-
-            canvas.drawPath(path, paint);
-        }
-
-        this.drawText(canvas);
-
-        this.canvas = canvas;
-    }
-
-    /**
-     * This method set event listener for drawing.
-     *
-     * @param event the instance of MotionEvent
-     * @return
-     */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 this.onActionDown(event);
-                break;
-            case MotionEvent.ACTION_MOVE :
+                this.invalidate();
+                return true;
+            case MotionEvent.ACTION_MOVE:
                 this.onActionMove(event);
-                break;
-            case MotionEvent.ACTION_UP :
+                this.invalidate();
+                return true;
+            case MotionEvent.ACTION_UP:
                 this.onActionUp(event);
-                break;
-            default :
-                break;
+                this.invalidate();
+                return true;
         }
 
-        // Re draw
+        return false;
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        // Initialize
+        if (this.bitmap == null) {
+            this.bitmap = Bitmap.createBitmap(this.getWidth(), this.getHeight(), Bitmap.Config.ARGB_8888);
+            this.canvas = new Canvas(this.bitmap);
+        }
+
+        canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR); // Clear the canvas
+
+        // Draw bitmap
+        canvas.drawBitmap(this.bitmap, 0F, 0F, null);
+
+        for (int i = 0; i < this.historyPointer; i++) {
+            canvas.drawPath(this.pathLists.get(i), this.paintLists.get(i));
+        }
+
+        // Draw text
+        if (this.mode == Mode.TEXT) {
+            this.drawText(canvas);
+        }
+    }
+
+    /**
+     * This method returns the instance of Bitmap as byte array.
+     *
+     * @param compressFormat This is a compress format for bitmap
+     * @param quality        This is a quality for bitmap
+     * @return stream.toByteArray() This is returned as the instance of byte array
+     */
+    public byte[] getBitmapAsByteArray(Bitmap.CompressFormat compressFormat, int quality) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        this.bitmap.compress(compressFormat, quality, stream);
+
+        return stream.toByteArray();
+    }
+
+    /**
+     * This method sets the instance of Bitmap.
+     *
+     * @param bitmap the instance of Bitmap
+     */
+    public void setBitmap(Bitmap bitmap) {
+        // Ensure the bitmap is mutable
+        this.bitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+        this.canvas = new Canvas(this.bitmap);
         this.invalidate();
-
-        return true;
     }
 
-    /**
-     * This method is getter for mode.
-     *
-     * @return
-     */
-    public Mode getMode() {
-        return this.mode;
+    public Bitmap getBitmap() {
+        return this.bitmap;
     }
 
-    /**
-     * This method is setter for mode.
-     *
-     * @param mode
-     */
+    public void loadBitmapFromFile(String filePath) {
+        Bitmap bitmap = BitmapFactory.decodeFile(filePath);
+        if (bitmap != null) {
+            setBitmap(bitmap);
+        }
+    }
+
+
+
     public void setMode(Mode mode) {
         this.mode = mode;
     }
 
-    /**
-     * This method is getter for drawer.
-     *
-     * @return
-     */
-    public Drawer getDrawer() {
-        return this.drawer;
-    }
-
-    /**
-     * This method is setter for drawer.
-     *
-     * @param drawer
-     */
     public void setDrawer(Drawer drawer) {
         this.drawer = drawer;
     }
 
-    /**
-     * This method draws canvas again for Undo.
-     *
-     * @return If Undo is enabled, this is returned as true. Otherwise, this is returned as false.
-     */
-    public boolean undo() {
-        if (this.historyPointer > 1) {
-            this.historyPointer--;
-            this.invalidate();
-
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * This method draws canvas again for Redo.
-     *
-     * @return If Redo is enabled, this is returned as true. Otherwise, this is returned as false.
-     */
-    public boolean redo() {
-        if (this.historyPointer < this.pathLists.size()) {
-            this.historyPointer++;
-            this.invalidate();
-
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * This method initializes canvas.
-     *
-     * @return
-     */
-    public void clear() {
-        Path path = new Path();
-        path.moveTo(0F, 0F);
-        path.addRect(0F, 0F, 1000F, 1000F, Path.Direction.CCW);
-        path.close();
-
-        Paint paint = new Paint();
-        paint.setColor(Color.WHITE);
-        paint.setStyle(Paint.Style.FILL);
-
-        if (this.historyPointer == this.pathLists.size()) {
-            this.pathLists.add(path);
-            this.paintLists.add(paint);
-            this.historyPointer++;
-        } else {
-            // On the way of Undo or Redo
-            this.pathLists.set(this.historyPointer, path);
-            this.paintLists.set(this.historyPointer, paint);
-            this.historyPointer++;
-
-            for (int i = this.historyPointer, size = this.paintLists.size(); i < size; i++) {
-                this.pathLists.remove(this.historyPointer);
-                this.paintLists.remove(this.historyPointer);
-            }
-        }
-
-        this.text = "";
-
-        // Clear
+    public void setBaseColor(int baseColor) {
+        this.baseColor = baseColor;
+        this.canvas.drawColor(this.baseColor);
         this.invalidate();
     }
 
-    /**
-     * This method is getter for canvas background color
-     *
-     * @return
-     */
-    public int getBaseColor() {
-        return this.baseColor;
-    }
-
-    /**
-     * This method is setter for canvas background color
-     *
-     * @param color
-     */
-    public void setBaseColor(int color) {
-        this.baseColor = color;
-    }
-
-    /**
-     * This method is getter for drawn text.
-     *
-     * @return
-     */
-    public String getText() {
-        return this.text;
-    }
-
-    /**
-     * This method is setter for drawn text.
-     *
-     * @param text
-     */
-    public void setText(String text) {
-        this.text = text;
-    }
-
-    /**
-     * This method is getter for stroke or fill.
-     *
-     * @return
-     */
-    public Paint.Style getPaintStyle() {
-        return this.paintStyle;
-    }
-
-    /**
-     * This method is setter for stroke or fill.
-     *
-     * @param style
-     */
-    public void setPaintStyle(Paint.Style style) {
-        this.paintStyle = style;
-    }
-
-    /**
-     * This method is getter for stroke color.
-     *
-     * @return
-     */
-    public int getPaintStrokeColor() {
-        return this.paintStrokeColor;
-    }
-
-    /**
-     * This method is setter for stroke color.
-     *
-     * @param color
-     */
-    public void setPaintStrokeColor(int color) {
-        this.paintStrokeColor = color;
-    }
-
-    /**
-     * This method is getter for fill color.
-     * But, current Android API cannot set fill color (?).
-     *
-     * @return
-     */
-    public int getPaintFillColor() {
-        return this.paintFillColor;
-    };
-
-    /**
-     * This method is setter for fill color.
-     * But, current Android API cannot set fill color (?).
-     *
-     * @param color
-     */
-    public void setPaintFillColor(int color) {
-        this.paintFillColor = color;
-    }
-
-    /**
-     * This method is getter for stroke width.
-     *
-     * @return
-     */
-    public float getPaintStrokeWidth() {
-        return this.paintStrokeWidth;
-    }
-
-    /**
-     * This method is setter for stroke width.
-     *
-     * @param width
-     */
-    public void setPaintStrokeWidth(float width) {
-        if (width >= 0) {
-            this.paintStrokeWidth = width;
-        } else {
-            this.paintStrokeWidth = 3F;
-        }
-    }
-
-    /**
-     * This method is getter for alpha.
-     *
-     * @return
-     */
-    public int getOpacity() {
-        return this.opacity;
-    }
-
-    /**
-     * This method is setter for alpha.
-     * The 1st argument must be between 0 and 255.
-     *
-     * @param opacity
-     */
-    public void setOpacity(int opacity) {
-        if ((opacity >= 0) && (opacity <= 255)) {
-            this.opacity = opacity;
-        } else {
-            this.opacity= 255;
-        }
-    }
-
-    /**
-     * This method is getter for amount of blur.
-     *
-     * @return
-     */
-    public float getBlur() {
-        return this.blur;
-    }
-
-    /**
-     * This method is setter for amount of blur.
-     * The 1st argument is greater than or equal to 0.0.
-     *
-     * @param blur
-     */
-    public void setBlur(float blur) {
-        if (blur >= 0) {
-            this.blur = blur;
-        } else {
-            this.blur = 0F;
-        }
-    }
-
-    /**
-     * This method is getter for line cap.
-     *
-     * @return
-     */
-    public Paint.Cap getLineCap() {
-        return this.lineCap;
-    }
-
-    /**
-     * This method is setter for line cap.
-     *
-     * @param cap
-     */
-    public void setLineCap(Paint.Cap cap) {
-        this.lineCap = cap;
-    }
-
-    /**
-     * This method is getter for font size,
-     *
-     * @return
-     */
-    public float getFontSize() {
-        return this.fontSize;
-    }
-
-    /**
-     * This method is setter for font size.
-     * The 1st argument is greater than or equal to 0.0.
-     *
-     * @param size
-     */
-    public void setFontSize(float size) {
-        if (size >= 0F) {
-            this.fontSize = size;
-        } else {
-            this.fontSize = 32F;
-        }
-    }
-
-    /**
-     * This method is getter for font-family.
-     *
-     * @return
-     */
-    public Typeface getFontFamily() {
-        return this.fontFamily;
-    }
-
-    /**
-     * This method is setter for font-family.
-     *
-     * @param face
-     */
-    public void setFontFamily(Typeface face) {
-        this.fontFamily = face;
-    }
-
-    /**
-     * This method gets current canvas as bitmap.
-     *
-     * @return This is returned as bitmap.
-     */
-    public Bitmap getBitmap() {
-        this.setDrawingCacheEnabled(false);
-        this.setDrawingCacheEnabled(true);
-
-        return Bitmap.createBitmap(this.getDrawingCache());
-    }
-
-    /**
-     * This method gets current canvas as scaled bitmap.
-     *
-     * @return This is returned as scaled bitmap.
-     */
-    public Bitmap getScaleBitmap(int w, int h) {
-        this.setDrawingCacheEnabled(false);
-        this.setDrawingCacheEnabled(true);
-
-        return Bitmap.createScaledBitmap(this.getDrawingCache(), w, h, true);
-    }
-
-    /**
-     * This method draws the designated bitmap to canvas.
-     *
-     * @param bitmap
-     */
-    public void drawBitmap(Bitmap bitmap) {
-        this.bitmap = bitmap;
+    public void clearCanvas() {
+        this.canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR); // Clear the bitmap
+        this.pathLists.clear();
+        this.paintLists.clear();
+        this.historyPointer = 0;
         this.invalidate();
     }
-
-    /**
-     * This method draws the designated byte array of bitmap to canvas.
-     *
-     * @param byteArray This is returned as byte array of bitmap.
-     */
-    public void drawBitmap(byte[] byteArray) {
-        this.drawBitmap(BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length));
-    }
-
-    /**
-     * This static method gets the designated bitmap as byte array.
-     *
-     * @param bitmap
-     * @param format
-     * @param quality
-     * @return This is returned as byte array of bitmap.
-     */
-    public static byte[] getBitmapAsByteArray(Bitmap bitmap, Bitmap.CompressFormat format, int quality) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(format, quality, byteArrayOutputStream);
-
-        return byteArrayOutputStream.toByteArray();
-    }
-
-    /**
-     * This method gets the bitmap as byte array.
-     *
-     * @param format
-     * @param quality
-     * @return This is returned as byte array of bitmap.
-     */
-    public byte[] getBitmapAsByteArray(Bitmap.CompressFormat format, int quality) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        this.getBitmap().compress(format, quality, byteArrayOutputStream);
-
-        return byteArrayOutputStream.toByteArray();
-    }
-
-    /**
-     * This method gets the bitmap as byte array.
-     * Bitmap format is PNG, and quality is 100.
-     *
-     * @return This is returned as byte array of bitmap.
-     */
-    public byte[] getBitmapAsByteArray() {
-        return this.getBitmapAsByteArray(Bitmap.CompressFormat.PNG, 100);
-    }
-
 }
